@@ -1,0 +1,198 @@
+---
+title: "Homework 3"
+author: "Christian Gagnon"
+date: "10/7/2019"
+output: html_document
+---
+This is my homework 3 for AN597 found here:
+*https://fuzzyatelin.github.io/bioanth-stats/homework-03.html*
+
+Load in the dataset “zombies.csv” from my GitHub repo. This data includes the first name, last name, and gender of the entire population of 1000 people who have survived the zombie apocalypse and are now ekeing out an existence somewhere on the East Coast, along with several other variables (height, weight, age, number of years of education, number of zombies they have killed, and college major; see here for info on important post-zombie apocalypse majors).
+```{r}
+library(curl)
+f <- f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall19/zombies.csv")
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
+```
+
+1.Calculate the population mean and standard deviation for each quantitative random variable (height, weight, age, number of zombies killed, and years of education). NOTE: You will not want to use the built in var() and sd() commands as these are for samples.
+```{r}
+mean(d[["height"]])
+mean(d[["weight"]])
+mean(d[["age"]])
+mean(d[["zombies_killed"]])
+mean(d[["years_of_education"]])
+sapply(d, sd, na.rm = TRUE)
+
+```
+
+2.Use {ggplot} to make boxplots of each of these variables by gender.
+```{r}
+library(ggplot2)
+height <- ggplot(d, aes(x = gender, y = height))
+height + geom_boxplot() + ylab("height")
+
+weight <- ggplot(d, aes(x = gender, y = weight))
+weight + geom_boxplot() + ylab("weight") 
+
+age <- ggplot(d, aes(x = gender, y = age))
+age + geom_boxplot() + ylab("age")
+
+zombies_killed <- ggplot(d, aes(x = gender, y = zombies_killed))
+zombies_killed + geom_boxplot() + ylab("zombies_killed")
+
+years_of_education <- ggplot(d, aes(x = gender, y = years_of_education))
+years_of_education + geom_boxplot() + ylab("years_of_education")
+
+```
+
+3.Use {ggplot} to make scatterplots of height and weight in relation to age. Do these variables seem to be related? In what way?
+```{r}
+height_age <- ggplot(d, aes(x = age, y = height))
+height_age + geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x) + geom_point(size=1, fill=1, shape=24)
+
+weight_age <- ggplot(d, aes(x = age, y = weight))
+weight_age + geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x) + geom_point(size=1, fill=1, shape=24)
+```
+
+4.Using histograms and Q-Q plots, check whether the quantitative variables seem to be drawn from a normal distribution. Which seem to be and which do not (hint: not all are drawn from the normal distribution)? For those that are not normal, can you determine from which common distribution they are drawn?
+```{r}
+qplot(d$height, geom="histogram")
+qplot(d$weight, geom="histogram")
+qplot(d$age, geom="histogram")
+qplot(d$zombies_killed, geom="histogram")
+qplot(d$years_of_education, geom="histogram")
+```
+
+```{r}
+shapiro.test(d$height)
+shapiro.test(d$weight)
+shapiro.test(d$age)
+shapiro.test(d$zombies_killed)
+shapiro.test(d$years_of_education)
+```
+
+```{r}
+library("ggpubr")
+ggqqplot(d$height, ylab = "Height",
+         ggtheme = theme_minimal())
+ggqqplot(d$weight, ylab = "Weight",
+         ggtheme = theme_minimal())
+ggqqplot(d$age, ylab = "Age",
+         ggtheme = theme_minimal())
+ggqqplot(d$zombies_killed, ylab = "Zombies Killed",
+         ggtheme = theme_minimal())
+ggqqplot(d$years_of_education, ylab = "Years of Education",
+         ggtheme = theme_minimal())
+```
+
+5.Now use the sample() function to sample ONE subset of 30 zombie survivors (without replacement) from this population and calculate the mean and sample standard deviation for each variable. Also estimate the standard error for each variable, and construct the 95% confidence interval for each mean. Note that for the variables that are not drawn from the normal distribution, you may need to base your estimate of the CIs on slightly different code than for the normal…
+```{r}
+library(dplyr)
+s <- sample_n(d, size=30, replace = FALSE)
+s
+mean(s[["height"]])
+mean(s[["weight"]])
+mean(s[["age"]])
+mean(s[["zombies_killed"]])
+mean(s[["years_of_education"]])
+sapply(s, sd, na.rm = TRUE)
+```
+
+
+```{r}
+library(plotrix)
+std.error(s$height,na.rm)
+std.error(s$weight,na.rm)
+std.error(s$age,na.rm)
+std.error(s$zombies_killed,na.rm)
+std.error(s$years_of_education,na.rm)
+```
+
+```{r}
+t.test(s$height)
+t.test(s$weight)
+t.test(s$age)
+t.test(s$zombies_killed)
+wilcox.test(s$zombies_killed, conf.int = TRUE, conf.level = 0.95)
+t.test(s$years_of_education)
+wilcox.test(s$years_of_education, conf.int = TRUE, conf.level = 0.95)
+```
+
+6.Now draw 99 more random samples of 30 zombie apocalypse survivors, and calculate the mean for each variable for each of these samples. Together with the first sample you drew, you now have a set of 100 means for each variable (each based on 30 observations), which constitutes a sampling distribution for each variable. What are the means and standard deviations of this distribution of means for each variable? How do the standard deviations of means compare to the standard errors estimated in [5]? What do these sampling distributions look like (a graph might help here)? Are they normally distributed? What about for those variables that you concluded were not originally drawn from a normal distribution?
+
+```{r}
+k <- 100 # number of samples
+n <- 30 # size of each sample
+sz <- NULL # dummy variable to hold each sample
+for (i in 1:k){
+    sz[[i]] <- sample_n(d, size=30, replace = FALSE)
+}
+head(sz)
+```
+
+```{r}
+m_height <- NULL
+for (i in 1:k){
+    m_height[i] <- mean(sz[[i]]$height)
+}
+mean(m_height)
+
+m_weight <- NULL
+for (i in 1:k){
+    m_weight[i] <- mean(sz[[i]]$weight)
+}
+mean(m_weight)
+
+m_age <- NULL
+for (i in 1:k){
+    m_age[i] <- mean(sz[[i]]$age)
+}
+mean(m_age)
+
+m_zombies_killed <- NULL
+for (i in 1:k){
+    m_zombies_killed[i] <- mean(sz[[i]]$zombies_killed)
+}
+mean(m_zombies_killed)
+
+m_years_of_education <- NULL
+for (i in 1:k){
+    m_years_of_education[i] <- mean(sz[[i]]$years_of_education)
+}
+mean(m_years_of_education)
+
+```
+
+```{r}
+sd_height <- NULL
+for (i in 1:k){
+    sd_height[i] <- sd(sz[[i]]$height)
+}
+sd(sd_height)
+
+sd_weight <- NULL
+for (i in 1:k){
+    sd_weight[i] <- sd(sz[[i]]$weight)
+}
+sd(sd_weight)
+
+sd_age <- NULL
+for (i in 1:k){
+    sd_age[i] <- sd(sz[[i]]$age)
+}
+sd(sd_age)
+
+sd_zombies_killed <- NULL
+for (i in 1:k){
+    sd_zombies_killed[i] <- sd(sz[[i]]$zombies_killed)
+}
+sd(sd_zombies_killed)
+
+sd_years_of_education <- NULL
+for (i in 1:k){
+    sd_years_of_education[i] <-sd(sz[[i]]$years_of_education)
+}
+sd(sd_years_of_education)
+```
+
